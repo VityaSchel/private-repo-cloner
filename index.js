@@ -5,12 +5,17 @@ import fs from 'fs/promises'
 import { getRepos, getRepoBranches, downloadBranch } from './src/repos.js'
 import loadKey from './src/loadKey.js'
 import { requestYandex } from './src/request.js'
+import fileSize from 'byte-size'
+
+const dirname = new URL('.', import.meta.url).pathname
 
 await login()
 console.log('✓ Успешная авторизация в Yandex.Disk API и GitHub REST API')
 
 const key = await loadKey()
+
 const exceptions = await fs.readFile(dirname + 'exceptions.txt')
+const skipList = exceptions.toString('utf-8').split('\n')
 
 const date = Intl.DateTimeFormat('ru-RU', {
   day: 'numeric',
@@ -23,31 +28,31 @@ await requestYandex('resources', {
   path: `app:/${date}`
 }, { method: 'PUT' })
 
-let repos = await getRepos()
+const repos = await getRepos(26)
 console.log(`✓ Получен список репозитоириев (${repos.length} приватных)`)
-repos = repos.slice(2, 5)
-for(let repoName of repos) {
-  console.log(`→ Загрузка репозитория ${repoName}`)
+for(let [repoName, repoSize] of repos) {
+  if(skipList.includes(repoName)) {
+    console.log(`→ Репозиторий ${repoName} пропущен, потому что добавлен в список исключений (файл exceptions.txt)`)
+    continue
+  }
+
+  console.log(`→ Загрузка репозитория ${repoName} (${fileSize(repoSize)})`)
   const branches = await getRepoBranches(repoName)
   for (let branch of branches) {
     (branches.length > 1 || !['master', 'main'].includes(branch)) && console.log(`→→ Загрузка ветки ${branch}`)
     const archive = await downloadBranch(repoName, branch)
-    console.time('enc')
     const aesCtr = new aesjs.ModeOfOperation.ctr(key, new aesjs.Counter(5))
     const encryptedBytes = aesCtr.encrypt(new Uint8Array(archive))
-    console.timeEnd('enc')
 
     const encryptedArchiveName = `${repoName.replaceAll(/[^a-zA-Z0-9-]/g, '_')}_${branch}.tar.gz.encrypted`
-    console.time('rupl')
     const uploadHref = await requestYandex('resources/upload', {
       path: `app:/${date}/${encryptedArchiveName}`
     })
-    console.timeEnd('rupl')
-    console.time('upl')
     await fetch(uploadHref.data.href, {
       body: Buffer.from(encryptedBytes),
       method: 'PUT'
     })
-    console.timeEnd('upl')
   }
 }
+
+console.log('👍 Все репозитории успешно зашифрованы и скопированы на Яндекс.Диск')
