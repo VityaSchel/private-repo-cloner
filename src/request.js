@@ -1,10 +1,11 @@
 import fetch from 'node-fetch'
 
-export async function requestYandex(endpoint, query) {
+export async function requestYandex(endpoint, query, options) {
   const response = await fetch(`https://cloud-api.yandex.net/v1/disk/${endpoint}?${new URLSearchParams(query)}`, {
     headers: {
       Authorization: `OAuth ${global.yandexAPIToken}`
-    }
+    },
+    ...options
   })
   return {
     ...response,
