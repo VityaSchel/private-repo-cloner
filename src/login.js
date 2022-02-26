@@ -7,7 +7,11 @@ const dirname = new URL('.', import.meta.url).pathname
 
 async function parseAuthFile() {
   const auth = await fs.readFile(dirname + '../auth.json')
-  return JSON.parse(auth)
+  try {
+    return JSON.parse(auth)
+  } catch(e) {
+    return {}
+  }
 }
 
 export default async function login() {
