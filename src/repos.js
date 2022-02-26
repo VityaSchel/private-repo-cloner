@@ -15,6 +15,10 @@ export async function getRepoBranches(repoName) {
 }
 
 export async function downloadBranch(repoName, branch) {
-  const repoArchive = await fetch(`https://codeload.github.com/${repoName}/tar.gz/${branch}`)
+  const repoArchive = await fetch(`https://codeload.github.com/${repoName}/tar.gz/${branch}`, {
+    headers: {
+      Authorization: `Bearer ${global.githubAPIToken}`
+    }
+  })
   return await repoArchive.arrayBuffer()
 }

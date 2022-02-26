@@ -1,9 +1,13 @@
 import login from './src/login.js'
+import aesjs from 'aes-js'
 import fs from 'fs/promises'
 import { getRepos, getRepoBranches, downloadBranch } from './src/repos.js'
 
 await login()
 console.log('✓ Успешная авторизация в Yandex.Disk API и GitHub REST API')
+
+const key = await fs.readFile('AES_scrypt.key')
+console.log('✓ Успешно загружен ключ AES')
 
 let repos = await getRepos()
 console.log(`✓ Получен список репозитоириев (${repos.length} приватных)`)
@@ -14,6 +18,11 @@ for(let repoName of repos) {
   for (let branch of branches) {
     (branches.length > 1 || !['master', 'main'].includes(branch)) && console.log(`→→ Загрузка ветки ${branch}`)
     const archive = await downloadBranch(repoName, branch)
-    await fs.writeFile(`${repoName.replaceAll(/[^a-zA-Z0-9-]/g, '_')}.tar.gz`, Buffer.from(archive))
+    
+    const aesCtr = new aesjs.ModeOfOperation.ctr(key, new aesjs.Counter(5))
+    const encryptedBytes = aesCtr.encrypt(new Uint8Array(archive))
+
+    const encryptedArchiveName = `${repoName.replaceAll(/[^a-zA-Z0-9-]/g, '_')}.tar.gz.encrypted`
+    await fs.writeFile(encryptedArchiveName, Buffer.from(encryptedBytes))
   }
 }
