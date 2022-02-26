@@ -36,7 +36,7 @@ for(let [repoName, repoSize] of repos) {
     continue
   }
 
-  console.log(`→ Загрузка репозитория ${repoName} (${fileSize(repoSize)})`)
+  console.log(`→ Загрузка репозитория ${repoName} (${fileSize(repoSize * 1000)})`)
   const branches = await getRepoBranches(repoName)
   for (let branch of branches) {
     (branches.length > 1 || !['master', 'main'].includes(branch)) && console.log(`→→ Загрузка ветки ${branch}`)
