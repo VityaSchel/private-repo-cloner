@@ -28,7 +28,7 @@ await requestYandex('resources', {
   path: `app:/${date}`
 }, { method: 'PUT' })
 
-const repos = await getRepos(26)
+const repos = await getRepos()
 console.log(`✓ Получен список репозитоириев (${repos.length} приватных)`)
 for(let [repoName, repoSize] of repos) {
   if(skipList.includes(repoName)) {
