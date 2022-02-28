@@ -2,11 +2,18 @@ import fetch from 'node-fetch'
 import { requestGitHub } from './request.js'
 
 export async function getRepos(offset = 0) {
-  const response = await requestGitHub('user/repos', {
-    visibility: 'private',
-    affiliation: 'owner'
-  })
-  return response.data.slice(offset)
+  const retreiveRepos = async page => {
+    const response = await requestGitHub('user/repos', {
+      visibility: 'private',
+      affiliation: 'owner',
+      per_page: 100,
+      page
+    })
+    const nextPage = response.data?.length ? await retreiveRepos(page + 1) : []
+    return [...response.data, ...nextPage]
+  }
+  const repos = await retreiveRepos(1)
+  return repos.slice(offset)
 }
 
 export async function getRepoBranches(repoName) {
