@@ -28,9 +28,32 @@ await requestYandex('resources', {
   path: `app:/${date}`
 }, { method: 'PUT' })
 
-const repos = await getRepos()
+let repos = await getRepos()
 console.log(`✓ Получен список репозитоириев (${repos.length} приватных)`)
-for(let [repoName, repoSize] of repos) {
+
+if(process.argv[2] === '--full') {
+  console.log('✓ Указан аргумент --full, поэтому создается полный бекап со всеми репозиториями')
+} else {
+  try {
+    const lastUpdatesData = await fs.readFile(dirname + 'lastUpdate.json', 'utf-8')
+    const lastUpdates = JSON.parse(lastUpdatesData)
+    repos = repos.filter(repo => repo.updated_at !== lastUpdates[repo.id])
+    console.log(`✓ Новый бекап будет создан только с обновленными репозиториями (${repos.length})`)
+  } catch(e) {
+    console.error('✘ Не удалось прочитать файл lastUpdate.json, пропускаем фильтрацию репозиториев')
+  }
+}
+
+async function setLastUpdateCached(repoID, lastUpdate) {
+  const lastUpdatesData = await fs.readFile(dirname + 'lastUpdate.json', 'utf-8')
+  const lastUpdates = JSON.parse(lastUpdatesData)
+  lastUpdates[repoID] = lastUpdate
+  await fs.writeFile(dirname + 'lastUpdate.json', JSON.stringify(lastUpdates))
+}
+
+for(let repo of repos) {
+  const repoName = repo.full_name
+  const repoSize = repo.size
   if(skipList.includes(repoName)) {
     console.log(`→ Репозиторий ${repoName} пропущен, потому что добавлен в список исключений (файл exceptions.txt)`)
     continue
@@ -53,6 +76,8 @@ for(let [repoName, repoSize] of repos) {
       method: 'PUT'
     })
   }
+
+  await setLastUpdateCached(repo.id, repo.updated_at)
 }
 
 console.log('👍 Все репозитории успешно зашифрованы и скопированы на Яндекс.Диск')

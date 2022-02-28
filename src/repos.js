@@ -6,9 +6,7 @@ export async function getRepos(offset = 0) {
     visibility: 'private',
     affiliation: 'owner'
   })
-  const repos = response.data
-    .map(repo => [repo.full_name, repo.size])
-  return repos.slice(offset)
+  return response.data.slice(offset)
 }
 
 export async function getRepoBranches(repoName) {
